@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use App\Models\FormSubmission;
 
 class FormController extends Controller
 {
@@ -28,31 +28,15 @@ class FormController extends Controller
             'message.max' => 'Сообщение не должно превышать 1000 символов.',
         ]);
 
-        $validated['timestamp'] = now()->toDateTimeString();
-
-        $filename = 'form_' . uniqid() . '_' . time() . '.json';
-
-        Storage::disk('local')->put('forms/' . $filename, json_encode($validated, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        FormSubmission::create($validated);
 
         return redirect()->route('form.show')->with('success', 'Данные успешно сохранены!');
     }
 
     public function showData()
     {
-        $allData = [];
-
-        $files = Storage::disk('local')->files('forms');
-
-        foreach ($files as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) === 'json') {
-                $content = Storage::disk('local')->get($file);
-                $data = json_decode($content, true);
-                if ($data) {
-                    $allData[] = $data;
-                }
-            }
-        }
-
-        return view('data', ['data' => $allData]);
+        $data = FormSubmission::orderBy('created_at', 'desc')->get();
+        
+        return view('data', ['data' => $data]);
     }
 }
